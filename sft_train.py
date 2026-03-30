@@ -24,7 +24,7 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         args_cli.model_id,
         torch_dtype=torch.bfloat16,        # Better stability than fp16 on A100
-        attn_implementation="flash_attention_2", # Massive speedup for long reasoning traces
+        attn_implementation="sdpa", # Massive speedup for long reasoning traces
         device_map="auto"
     )
 
