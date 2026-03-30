@@ -1,9 +1,13 @@
 import argparse
 import wandb
 import torch
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 from datasets import load_dataset
 from transformers import TrainingArguments, AutoModelForCausalLM, AutoTokenizer
+
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 def main():
     parser = argparse.ArgumentParser(description="High-throughput fine-tuning for A100 80GB.")
@@ -23,29 +27,28 @@ def main():
 
     model = AutoModelForCausalLM.from_pretrained(
         args_cli.model_id,
-        torch_dtype=torch.bfloat16,        # Better stability than fp16 on A100
+        dtype=torch.bfloat16,        # Better stability than fp16 on A100
         attn_implementation="sdpa", # Massive speedup for long reasoning traces
-        device_map="auto"
+        device_map="cuda:0",
     )
 
     dataset = load_dataset("codingmonster1234/chess-reasoning-processed")
 
     # 2. Optimized Training Arguments for 80GB VRAM
-    training_args = TrainingArguments(
+    training_args = SFTConfig(
         output_dir=f"./output-{args_cli.model_id.split('/')[-1]}",
-        overwrite_output_dir=True,
         
         # Throughput Optimization
         bf16=True,                         # Uses A100 Tensor Cores efficiently
         tf32=True,                         # Math speedup for remaining float32 ops
-        per_device_train_batch_size=64,    # Increased for 0.6B model on 80GB
-        gradient_accumulation_steps=1,     # Minimal accumulation to keep throughput high
-        gradient_checkpointing=False,      # Faster if you have enough VRAM (which you do)
+        per_device_train_batch_size=2,    # Increased for 0.6B model on 80GB
+        gradient_accumulation_steps=8,     # Minimal accumulation to keep throughput high
+        gradient_checkpointing=True,      # Faster if you have enough VRAM (which you do)
+        gradient_checkpointing_kwargs={"use_reentrant": False}, # Modern practice
         dataloader_num_workers=4,          # Parallelize data loading
         
         # Evaluation & Logging
-        evaluation_strategy="steps",
-        eval_steps=200,                    # Don't eval too often; it slows down training
+        eval_strategy="epoch",
         logging_steps=1,
         report_to="wandb",
         
@@ -56,9 +59,11 @@ def main():
         max_grad_norm=1.0,
         
         # Checkpointing
-        save_strategy="steps",
+        save_strategy="epoch",
         save_total_limit=2,
-        save_steps=1000,
+        
+        max_length=2048,               # Adjust based on your trace lengths
+        packing=False,                      # Pack multiple examples into one block for speed
     )
 
     # 3. Initialize Trainer
@@ -67,9 +72,7 @@ def main():
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"],
         args=training_args,
-        max_seq_length=2048,               # Adjust based on your trace lengths
-        packing=True,                      # Pack multiple examples into one block for speed
-    )
+        )
 
     trainer.train()
     
