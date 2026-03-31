@@ -13,7 +13,7 @@ def process_split(dataset, split_name, color="#00ff00"):
         # Constructing the chat-style format
         prompt = [
             {"content": system_prompt, "role": "system"},
-            {"content": build_user_prompt(example["fen"], example["last_move"]), "role": "user"}
+            {"content": build_user_prompt(example["fen"]), "role": "user"}
         ]
         
         completion = [
@@ -43,9 +43,10 @@ dataset_dict = DatasetDict({
     "test": test_ds
 })
 
+
 # 4. Push to the Hub
 # Replace 'your-username' with your actual HF handle
-repo_id = "codingmonster1234/chess-reasoning-processed"
+repo_id = "codingmonster1234/chess-reasoning-sft"
 print(f"Uploading dataset to {repo_id}...")
 
 dataset_dict.push_to_hub(repo_id)

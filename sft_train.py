@@ -5,10 +5,6 @@ from trl import SFTTrainer, SFTConfig
 from datasets import load_dataset
 from transformers import TrainingArguments, AutoModelForCausalLM, AutoTokenizer
 
-import os
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-
-
 def main():
     parser = argparse.ArgumentParser(description="High-throughput fine-tuning for A100 80GB.")
     parser.add_argument("--model_id", type=str, default="Qwen/Qwen3-0.6B")
@@ -29,7 +25,7 @@ def main():
         args_cli.model_id,
         dtype=torch.bfloat16,        # Better stability than fp16 on A100
         attn_implementation="sdpa", # Massive speedup for long reasoning traces
-        device_map="cuda:0",
+        device_map="auto",
     )
 
     dataset = load_dataset("codingmonster1234/chess-reasoning-processed")
@@ -72,7 +68,7 @@ def main():
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"],
         args=training_args,
-        )
+    )
 
     trainer.train()
     

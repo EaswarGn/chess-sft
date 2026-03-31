@@ -1,4 +1,5 @@
 import re
+import chess
 
 system_prompt = """You are an elite chess AI, functioning at a Grandmaster level of tactical and positional understanding. Your task is to analyze a given chess position, accurately calculate variations, and determine the absolute best move. 
 
@@ -7,7 +8,7 @@ You must think deeply and systematically before providing your final answer. You
 Your reasoning trace within the <think> tags must follow a rigorous, structured analytical process consisting of the following sequential steps:
 
 ## Step 1: FEN parsing
-Deconstruct the provided board state (whether FEN or coordinate-based) rank by rank. Accurately identify the exact square of every piece on the board. Do not hallucinate piece placements. 
+Deconstruct the provided board state rank by rank. Accurately identify the exact square of every piece on the board. Do not hallucinate piece placements. 
 
 ## Step 2: Piece Positions
 Categorize the active pieces for both White and Black. Note the exact coordinate of the kings, heavy pieces (queens, rooks), minor pieces, and relevant pawn structures.
@@ -39,13 +40,16 @@ Example Output Format:
 """
 
 def build_user_prompt(
-    fen_position: str,
-    last_move: str | None = None,
+    fen_string: str,
 ):
-    prompt = f"Position: {fen_position}\n"
-    if last_move:
-        prompt += f"Last move: {last_move}\n"
-    prompt += "What is the best move for the side to move?"
+    board = chess.Board(fen_string)
+    turn = "White" if board.turn == chess.WHITE else "Black"
+    
+    
+    prompt = f"FEN String of current position: {fen_string}\n"
+    prompt += "Here is the ASCII representation of the board:\n"
+    prompt += str(board) + "\n"
+    prompt += f"{turn} to play, find the best move.\n"
     return prompt
 
 def build_completion(
