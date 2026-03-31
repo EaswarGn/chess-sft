@@ -1,5 +1,6 @@
 import re
 import chess
+from chess.svg import board
 
 system_prompt = """You are an elite chess AI, functioning at a Grandmaster level of tactical and positional understanding. Your task is to analyze a given chess position, accurately calculate variations, and determine the absolute best move. 
 
@@ -49,6 +50,7 @@ def build_user_prompt(
     prompt = f"FEN String of current position: {fen_string}\n"
     prompt += "Here is the ASCII representation of the board:\n"
     prompt += str(board) + "\n"
+    prompt += f"List of legal moves in SAN format: {', '.join([board.san(move) for move in board.legal_moves])}\n"
     prompt += f"{turn} to play, find the best move.\n"
     return prompt
 
