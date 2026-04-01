@@ -4,8 +4,8 @@ from prompts import system_prompt, build_user_prompt
 from datasets import load_dataset
 from rich import print_json
 
-model_id = "codingmonster1234/chess-sft-model"
-subfolder = "checkpoint-252"
+model_id = "codingmonster1234/chess-sft-modelv2"
+subfolder = "checkpoint-168"
 
 # 1. Load Tokenizer and Model
 tokenizer = AutoTokenizer.from_pretrained(model_id, subfolder=subfolder)
